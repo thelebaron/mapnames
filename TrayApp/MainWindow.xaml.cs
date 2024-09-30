@@ -9,11 +9,13 @@ namespace TrayApp
 {
     public partial class MainWindow : Window
     {
-        private NotifyIcon trayIcon;
+        private NotifyIcon        trayIcon;
         private FileSystemWatcher watcher;
         private ToolStripMenuItem enableMenuItem;
-        private string directoryToWatch = @"C:\Users\thele\Documents\Repos\cyberjunk\Assets\Maps"; // Default directory
-        private string fileExtension = "*.map"; // Default extension to monitor
+        private string            directoryToWatch = @"C:\Users\thele\Documents\Repos\cyberjunk\Assets\Maps"; // Default directory
+        private string fileWildcard = "*";
+        private string            fileExtension    = ".map";                                                 // Default extension to monitor
+        private ToolStripMenuItem setDirectoryMenuItem;                                                       // Define a menu item to set the directory
 
         public MainWindow()
         {
@@ -32,8 +34,8 @@ namespace TrayApp
         {
             trayIcon = new NotifyIcon
             {
-                Text = "File Monitor",
-                Icon = SystemIcons.Application, // You can replace this with a custom icon
+                Text    = "File Monitor",
+                Icon    = SystemIcons.Application, // You can replace this with a custom icon
                 Visible = true
             };
 
@@ -47,36 +49,49 @@ namespace TrayApp
             };
             trayMenu.Items.Add(enableMenuItem);
 
-            // "Set Directory" menu item
-            trayMenu.Items.Add("Set Directory", null, OnSetDirectory);
+            // Initialize the Set Directory menu item
+            setDirectoryMenuItem = new ToolStripMenuItem($"Set Directory: {directoryToWatch}", null, OnSetDirectory);
+            trayMenu.Items.Add(setDirectoryMenuItem);
 
             // "Exit" menu item
             trayMenu.Items.Add("Exit", null, OnExit);
 
             // Attach the menu to the tray icon
             trayIcon.ContextMenuStrip = trayMenu;
+            
+            System.Windows.MessageBox.Show($"Directory set to: {directoryToWatch}", "File Monitor");
         }
 
         private void InitializeFileSystemWatcher()
         {
             watcher = new FileSystemWatcher
             {
-                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
-                Filter = fileExtension,
+                NotifyFilter        = NotifyFilters.LastWrite | NotifyFilters.FileName,
+                Filter              = fileWildcard+fileExtension,
                 EnableRaisingEvents = false
             };
             watcher.Changed += OnFileChanged;
             watcher.Created += OnFileChanged;
             watcher.Renamed += OnFileRenamed;
             watcher.Deleted += OnFileDeleted;
+            
+            watcher.Path              = directoryToWatch;                     // Set the watcher path
         }
 
         // Event handler for toggling monitoring
         private void OnToggleEnabled(object sender, EventArgs e)
         {
+            // Check if the directory to watch is valid before enabling
+            if (string.IsNullOrWhiteSpace(directoryToWatch) || !Directory.Exists(directoryToWatch))
+            {
+                System.Windows.MessageBox.Show("Please set a valid directory before enabling monitoring.", "Invalid Directory: " + directoryToWatch, MessageBoxButton.OK, MessageBoxImage.Warning);
+                enableMenuItem.Checked = false; // Ensure it stays unchecked
+                return;                         // Exit the method to prevent enabling the watcher
+            }
+            
             enableMenuItem.Checked = !enableMenuItem.Checked;
             watcher.EnableRaisingEvents = enableMenuItem.Checked;
-
+            
             if (enableMenuItem.Checked)
             {
                 watcher.Path = directoryToWatch;
@@ -95,8 +110,9 @@ namespace TrayApp
             {
                 if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
-                    directoryToWatch = folderDialog.SelectedPath;
-                    watcher.Path = directoryToWatch;
+                    directoryToWatch          = folderDialog.SelectedPath;            // Update the path
+                    watcher.Path              = directoryToWatch;                     // Set the watcher path
+                    setDirectoryMenuItem.Text = $"Set Directory: {directoryToWatch}"; // Update menu item text
                     System.Windows.MessageBox.Show($"Directory set to: {directoryToWatch}", "File Monitor");
                 }
             }
@@ -113,12 +129,16 @@ namespace TrayApp
         // FileSystemWatcher event handlers
         private void OnFileChanged(object sender, FileSystemEventArgs e)
         {
+            
+            var path = e.FullPath;
+            LogChange("changed map: ", e.FullPath);
+            LogChange("looking forfileExtension: ", fileExtension);
+            LogChange("actual: ", Path.GetExtension(path));
             // Temporarily disable the watcher
             watcher.EnableRaisingEvents = false;
 
             try
             {
-                var path = e.FullPath;
 
                 if (fileExtension.Equals(Path.GetExtension(path)))
                 {

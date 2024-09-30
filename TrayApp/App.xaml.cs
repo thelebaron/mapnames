@@ -14,6 +14,6 @@ public partial class App
         base.OnStartup(e);
 
         // Start the application without showing any window
-        new MainWindow();
+        //new MainWindow();
     }
 }
