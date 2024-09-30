@@ -2,7 +2,7 @@
 using System.Data;
 using System.Windows;
 
-namespace TrayApp;
+namespace MapNames;
 
 /// <summary>
 /// Interaction logic for App.xaml

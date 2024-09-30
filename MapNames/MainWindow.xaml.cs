@@ -2,10 +2,12 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Forms;
+using Windows.UI.Notifications;
+using Microsoft.Toolkit.Uwp.Notifications;
 using Scopa.Editor; // Make sure to add reference to System.Windows.Forms
 using Application = System.Windows.Application;
 
-namespace TrayApp
+namespace MapNames
 {
     public partial class MainWindow : Window
     {
@@ -13,9 +15,9 @@ namespace TrayApp
         private FileSystemWatcher watcher;
         private ToolStripMenuItem enableMenuItem;
         private string            directoryToWatch = @"C:\Users\thele\Documents\Repos\cyberjunk\Assets\Maps"; // Default directory
-        private string fileWildcard = "*";
-        private string            fileExtension    = ".map";                                                 // Default extension to monitor
-        private ToolStripMenuItem setDirectoryMenuItem;                                                       // Define a menu item to set the directory
+        private string            fileWildcard     = "*";
+        private string            fileExtension    = ".map"; // Default extension to monitor
+        private ToolStripMenuItem setDirectoryMenuItem;      // Define a menu item to set the directory
 
         public MainWindow()
         {
@@ -25,7 +27,7 @@ namespace TrayApp
 
             // Initialize the tray icon and context menu
             InitializeTrayIcon();
-            
+
             // Initialize FileSystemWatcher but do not start it yet
             InitializeFileSystemWatcher();
         }
@@ -58,8 +60,9 @@ namespace TrayApp
 
             // Attach the menu to the tray icon
             trayIcon.ContextMenuStrip = trayMenu;
-            
-            System.Windows.MessageBox.Show($"Directory set to: {directoryToWatch}", "File Monitor");
+
+            //System.Windows.MessageBox.Show($"Directory set to: {directoryToWatch}", "File Monitor");
+            //LogChange2("Watching: ", directoryToWatch);
         }
 
         private void InitializeFileSystemWatcher()
@@ -67,15 +70,15 @@ namespace TrayApp
             watcher = new FileSystemWatcher
             {
                 NotifyFilter        = NotifyFilters.LastWrite | NotifyFilters.FileName,
-                Filter              = fileWildcard+fileExtension,
+                Filter              = fileWildcard + fileExtension,
                 EnableRaisingEvents = false
             };
             watcher.Changed += OnFileChanged;
             watcher.Created += OnFileChanged;
             watcher.Renamed += OnFileRenamed;
             watcher.Deleted += OnFileDeleted;
-            
-            watcher.Path              = directoryToWatch;                     // Set the watcher path
+
+            watcher.Path = directoryToWatch; // Set the watcher path
         }
 
         // Event handler for toggling monitoring
@@ -84,22 +87,24 @@ namespace TrayApp
             // Check if the directory to watch is valid before enabling
             if (string.IsNullOrWhiteSpace(directoryToWatch) || !Directory.Exists(directoryToWatch))
             {
-                System.Windows.MessageBox.Show("Please set a valid directory before enabling monitoring.", "Invalid Directory: " + directoryToWatch, MessageBoxButton.OK, MessageBoxImage.Warning);
+                System.Windows.MessageBox.Show("Please set a valid directory before enabling monitoring.", "Invalid Directory: " + directoryToWatch, MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
                 enableMenuItem.Checked = false; // Ensure it stays unchecked
                 return;                         // Exit the method to prevent enabling the watcher
             }
-            
-            enableMenuItem.Checked = !enableMenuItem.Checked;
+
+            enableMenuItem.Checked      = !enableMenuItem.Checked;
             watcher.EnableRaisingEvents = enableMenuItem.Checked;
-            
+
             if (enableMenuItem.Checked)
             {
                 watcher.Path = directoryToWatch;
-                System.Windows.MessageBox.Show($"Monitoring enabled for: {directoryToWatch}", "File Monitor");
+                LogChange2("Watching: ", directoryToWatch);
+                //System.Windows.MessageBox.Show($"Monitoring enabled for: {directoryToWatch}", "File Monitor");
             }
             else
             {
-                System.Windows.MessageBox.Show("Monitoring disabled.", "File Monitor");
+                //System.Windows.MessageBox.Show("Monitoring disabled.", "File Monitor");
             }
         }
 
@@ -129,21 +134,17 @@ namespace TrayApp
         // FileSystemWatcher event handlers
         private void OnFileChanged(object sender, FileSystemEventArgs e)
         {
-            
             var path = e.FullPath;
-            LogChange("changed map: ", e.FullPath);
-            LogChange("looking forfileExtension: ", fileExtension);
-            LogChange("actual: ", Path.GetExtension(path));
             // Temporarily disable the watcher
             watcher.EnableRaisingEvents = false;
 
             try
             {
-
                 if (fileExtension.Equals(Path.GetExtension(path)))
                 {
                     UniqueNamePreprocessor.Parse(path); // This may modify the file
-                    LogChange("Modified map: ", e.FullPath);
+                    UniqueNamePreprocessor.RenameDuplicateUnityNames(path);
+                    LogChange2("Modified map: ", e.FullPath);
                 }
             }
             finally
@@ -155,12 +156,12 @@ namespace TrayApp
 
         private void OnFileRenamed(object sender, RenamedEventArgs e)
         {
-            LogChange("Renamed", e.FullPath);
+            LogChange2("Renamed", e.FullPath);
         }
 
         private void OnFileDeleted(object sender, FileSystemEventArgs e)
         {
-            LogChange("Deleted", e.FullPath);
+            LogChange2("Deleted", e.FullPath);
         }
 
         // Method to log file changes
@@ -169,7 +170,30 @@ namespace TrayApp
             System.Windows.MessageBox.Show($"{changeType}: {filePath}", "File Monitor");
         }
 
-        // Method to hide the window
+        // Method to log file changes and send notifications
+
+        // Method to log file changes and send notifications
+        private void LogChange2(string changeType, string filePath)
+        {
+            new ToastContentBuilder()
+                .SetToastDuration(ToastDuration.Short)
+                .AddText(changeType)
+                .AddText(filePath)
+                .AddAudio(new ToastAudio{Silent = true})
+                .Show(); // Not seeing the Show() method? Make sure you have version 7.0,
+            
+            /*
+            // Create the toast notification from the XML
+            var toastNotification = new ToastNotification(toastContent.GetXml());
+            // Creates a silent audio element
+
+            // Show the toast notification
+            ToastNotificationManager.CreateToastNotifier().Show(toastNotification);*/
+        }
+    
+
+
+    // Method to hide the window
         private void HideWindow()
         {
             this.ShowInTaskbar = false;

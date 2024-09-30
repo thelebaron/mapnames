@@ -78,6 +78,43 @@ namespace Scopa.Editor
             //Debug.Log(updatedLines.Count);
         }
 
+        
+        // New method to check for duplicate names and rename them
+        public static void RenameDuplicateUnityNames(string path)
+        {
+            var lines        = File.ReadAllLines(path);
+            var names        = new Dictionary<string, int>();
+            var updatedLines = new List<string>();
+
+            // Iterate over lines and look for unityname lines
+            for (int i = 0; i < lines.Length; i++)
+            {
+                var line = lines[i].Trim();
+                updatedLines.Add(line);
+
+                if (line.BeginsWith("unityname"))
+                {
+                    var value = line.GetValue();
+
+                    // If name already exists, increment the count and rename
+                    if (names.ContainsKey(value))
+                    {
+                        names[value]++;
+                        var newUnityName = $"{value} ({names[value]})";
+                        //newUnityName = "bob";
+                        // Replace the line with the updated name
+                        updatedLines[updatedLines.Count - 1] = $"\"unityname\" \"{newUnityName}\"";
+                    }
+                    else
+                    {
+                        names[value] = 1;
+                    }
+                }
+            }
+
+            // Overwrite the file with the updated lines
+            File.WriteAllLines(path, updatedLines);
+        }
     }
     
     /// <summary>

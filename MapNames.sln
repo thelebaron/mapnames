@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TrayApp", "TrayApp\TrayApp.csproj", "{AE3D777B-5847-4DFC-B397-309B68822D16}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MapNames", "MapNames\MapNames.csproj", "{AE3D777B-5847-4DFC-B397-309B68822D16}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
