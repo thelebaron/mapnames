@@ -37,7 +37,8 @@ namespace MapNames
             trayIcon = new NotifyIcon
             {
                 Text    = "File Monitor",
-                Icon    = SystemIcons.Application, // You can replace this with a custom icon
+                //Icon    = SystemIcons.Application, // You can replace this with a custom icon
+                Icon    = new Icon("EntityPrefab.ico"),  // Load your custom icon file
                 Visible = true
             };
 
