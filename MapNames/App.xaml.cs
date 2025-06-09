@@ -1,5 +1,7 @@
-﻿using System.Configuration;
+﻿using System;
+using System.Configuration;
 using System.Data;
+using System.IO;
 using System.Windows;
 
 namespace MapNames;
@@ -13,7 +15,10 @@ public partial class App
     {
         base.OnStartup(e);
 
-        // Start the application without showing any window
-        //new MainWindow();
+        // Create and show the main window (which will hide itself and show tray icon)
+        var mainWindow = new MainWindow();
+        mainWindow.Show(); // This will be hidden immediately by the MainWindow constructor
     }
+
+
 }

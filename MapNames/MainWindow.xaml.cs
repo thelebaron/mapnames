@@ -11,13 +11,13 @@ namespace MapNames
 {
     public partial class MainWindow : Window
     {
-        private NotifyIcon        trayIcon;
-        private FileSystemWatcher watcher;
-        private ToolStripMenuItem enableMenuItem;
-        private string            directoryToWatch = @"C:\Users\thele\Documents\Repos\cyberjunk\Assets\Maps"; // Default directory
+        private NotifyIcon        trayIcon = null!;
+        private FileSystemWatcher watcher = null!;
+        private ToolStripMenuItem enableMenuItem = null!;
+        private string            directoryToWatch = GetDefaultWatchDirectory(); // Default directory
         private string            fileWildcard     = "*";
         private string            fileExtension    = ".map"; // Default extension to monitor
-        private ToolStripMenuItem setDirectoryMenuItem;      // Define a menu item to set the directory
+        private ToolStripMenuItem setDirectoryMenuItem = null!;      // Define a menu item to set the directory
 
         public MainWindow()
         {
@@ -37,8 +37,7 @@ namespace MapNames
             trayIcon = new NotifyIcon
             {
                 Text    = "File Monitor",
-                //Icon    = SystemIcons.Application, // You can replace this with a custom icon
-                Icon    = new Icon("EntityPrefab.ico"),  // Load your custom icon file
+                Icon    = LoadApplicationIcon(),  // Load icon safely
                 Visible = true
             };
 
@@ -95,7 +94,7 @@ namespace MapNames
         }
 
         // Event handler for toggling monitoring
-        private void OnToggleEnabled(object sender, EventArgs e)
+        private void OnToggleEnabled(object? sender, EventArgs e)
         {
             // Check if the directory to watch is valid before enabling
             if (string.IsNullOrWhiteSpace(directoryToWatch) || !Directory.Exists(directoryToWatch))
@@ -122,7 +121,7 @@ namespace MapNames
         }
 
         // Event handler for setting directory
-        private void OnSetDirectory(object sender, EventArgs e)
+        private void OnSetDirectory(object? sender, EventArgs e)
         {
             using (FolderBrowserDialog folderDialog = new FolderBrowserDialog())
             {
@@ -137,7 +136,7 @@ namespace MapNames
         }
 
         // Event handler for exiting the application
-        private void OnExit(object sender, EventArgs e)
+        private void OnExit(object? sender, EventArgs e)
         {
             trayIcon.Visible = false;
             trayIcon.Dispose();
@@ -201,12 +200,63 @@ namespace MapNames
     
 
 
-    // Method to hide the window
+        // Method to hide the window
         private void HideWindow()
         {
             this.ShowInTaskbar = false;
             this.WindowState = WindowState.Minimized;
             this.Hide();
         }
+
+        // Helper method to get default watch directory
+        private static string GetDefaultWatchDirectory()
+        {
+            // Try the original path first
+            var originalPath = @"C:\Users\thele\Documents\Repos\cyberjunk\Assets\Maps";
+            if (Directory.Exists(originalPath))
+                return originalPath;
+
+            // Fall back to user's Documents folder
+            var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            var fallbackPath = Path.Combine(documentsPath, "Maps");
+
+            // Create the directory if it doesn't exist
+            if (!Directory.Exists(fallbackPath))
+            {
+                Directory.CreateDirectory(fallbackPath);
+            }
+
+            return fallbackPath;
+        }
+
+        // Helper method to safely load the application icon
+        private Icon LoadApplicationIcon()
+        {
+            // First try to load from the application directory
+            var appDir = AppDomain.CurrentDomain.BaseDirectory;
+            var iconPath = Path.Combine(appDir, "EntityPrefab.ico");
+
+            if (File.Exists(iconPath))
+            {
+                return new Icon(iconPath);
+            }
+
+            // Try to load from embedded resources
+            var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+            var resourceName = "MapNames.EntityPrefab.ico";
+
+            using (var stream = assembly.GetManifestResourceStream(resourceName))
+            {
+                if (stream != null)
+                {
+                    return new Icon(stream);
+                }
+            }
+
+            // Fall back to system icon
+            return SystemIcons.Application;
+        }
+
+
     }
 }
