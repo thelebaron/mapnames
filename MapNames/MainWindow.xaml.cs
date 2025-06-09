@@ -48,7 +48,7 @@ namespace MapNames
             // "Enable" menu item (to toggle monitoring)
             enableMenuItem = new ToolStripMenuItem("Enabled", null, OnToggleEnabled)
             {
-                Checked = false // Initially disabled
+                Checked = true // Initially enable monitoring
             };
             trayMenu.Items.Add(enableMenuItem);
 
@@ -72,7 +72,7 @@ namespace MapNames
             {
                 NotifyFilter        = NotifyFilters.LastWrite | NotifyFilters.FileName,
                 Filter              = fileWildcard + fileExtension,
-                EnableRaisingEvents = false
+                EnableRaisingEvents = false // Will be set based on directory validity
             };
             watcher.Changed += OnFileChanged;
             watcher.Created += OnFileChanged;
@@ -80,6 +80,18 @@ namespace MapNames
             watcher.Deleted += OnFileDeleted;
 
             watcher.Path = directoryToWatch; // Set the watcher path
+
+            // Enable monitoring if directory is valid and menu item is checked
+            if (Directory.Exists(directoryToWatch) && enableMenuItem.Checked)
+            {
+                watcher.EnableRaisingEvents = true;
+                LogChange2("Watching: ", directoryToWatch);
+            }
+            else if (!Directory.Exists(directoryToWatch))
+            {
+                // Directory doesn't exist, disable the menu item
+                enableMenuItem.Checked = false;
+            }
         }
 
         // Event handler for toggling monitoring
@@ -139,20 +151,15 @@ namespace MapNames
             // Temporarily disable the watcher
             watcher.EnableRaisingEvents = false;
 
-            try
+            if (fileExtension.Equals(Path.GetExtension(path)))
             {
-                if (fileExtension.Equals(Path.GetExtension(path)))
-                {
-                    UniqueNamePreprocessor.Parse(path); // This may modify the file
-                    UniqueNamePreprocessor.RenameDuplicateUnityNames(path);
-                    LogChange2("Modified map: ", e.FullPath);
-                }
+                UniqueNamePreprocessor.Parse(path); // This may modify the file
+                UniqueNamePreprocessor.RenameDuplicateUnityNames(path);
+                LogChange2("Modified map: ", e.FullPath);
             }
-            finally
-            {
-                // Re-enable the watcher after processing
-                watcher.EnableRaisingEvents = true;
-            }
+
+            // Re-enable the watcher after processing (only if monitoring is still enabled)
+            watcher.EnableRaisingEvents = enableMenuItem.Checked;
         }
 
         private void OnFileRenamed(object sender, RenamedEventArgs e)

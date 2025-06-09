@@ -77,8 +77,9 @@ namespace Scopa.Editor
 
         public static void Parse(string path)
         {
-            var lines        = SafeReadAllLines(path);
-            var classes      = new Dictionary<string, int>();
+            var lines = SafeReadAllLines(path);
+            var originalLineCount = lines.Length;
+            var classes = new Dictionary<string, int>();
             var existingNames = new HashSet<string>();
             var updatedLines = new List<string>();
 
@@ -131,6 +132,15 @@ namespace Scopa.Editor
                 updatedLines.Add(newUnityNameLine);
             }
 
+            // Validate that we haven't lost any original lines
+            // The updated file should have at least as many lines as the original
+            if (updatedLines.Count < originalLineCount)
+            {
+                throw new InvalidOperationException(
+                    $"Data loss detected! Original file had {originalLineCount} lines, " +
+                    $"but processed file has only {updatedLines.Count} lines.");
+            }
+
             // Overwrite the original file with the updated lines
             SafeWriteAllLines(path, updatedLines);
         }
@@ -140,6 +150,7 @@ namespace Scopa.Editor
         public static void RenameDuplicateUnityNames(string path)
         {
             var lines = SafeReadAllLines(path);
+            var originalLineCount = lines.Length;
             var nameOccurrences = new Dictionary<string, List<int>>();
             var updatedLines = new List<string>();
             var allExistingNames = new HashSet<string>();
@@ -237,6 +248,14 @@ namespace Scopa.Editor
                 }
             }
 
+            // Validate that we haven't lost any lines
+            if (updatedLines.Count != originalLineCount)
+            {
+                throw new InvalidOperationException(
+                    $"Data loss detected! Original file had {originalLineCount} lines, " +
+                    $"but processed file has {updatedLines.Count} lines.");
+            }
+
             // Overwrite the file with the updated lines
             SafeWriteAllLines(path, updatedLines);
         }
@@ -331,13 +350,12 @@ namespace Scopa.Editor
         public static string GetNextLine(this string[] lines, int index)
         {
             var nextIndex = index + 1;
-            if (nextIndex <= lines.Length)
-                return lines[index + 1].Trim();
-        
-            else if(nextIndex>=lines.Length)
-                throw new IndexOutOfRangeException();
-        
+            if (nextIndex < lines.Length)  // Fixed: changed <= to < to prevent out-of-bounds access
+                return lines[nextIndex].Trim();  // Fixed: use nextIndex instead of index + 1 for clarity
+
+            // Return empty string if we're at the last line (no next line exists)
             return string.Empty;
         }
+
     }
 }
